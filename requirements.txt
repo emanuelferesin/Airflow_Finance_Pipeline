@@ -1,0 +1,8 @@
+# ARCHIVO: requirements.txt
+# Versión de Airflow (debe coincidir con la imagen de Docker)
+apache-airflow==2.7.2
+
+# Librerías necesarias para el ETL
+pandas                 # Manipulación y transformación de DataFrames
+requests               # Para las llamadas a las 3 APIs (Financiera, Metadatos, Dólar)
+psycopg2-binary        # Driver para la conexión a Redshift/Postgres

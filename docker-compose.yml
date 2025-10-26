@@ -1,0 +1,80 @@
+# ARCHIVO: docker-compose.yml
+version: '3.8'
+# Definir una red para que los servicios se comuniquen
+networks:
+  airflow-net:
+    driver: bridge
+
+services:
+  # 1. Base de Datos de Metadatos (Postgres)
+  postgres:
+    image: postgres:13
+    hostname: postgres
+    ports:
+      - "5432:5432"
+    environment:
+      # Credenciales para la base de datos interna de Airflow
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    networks:
+      - airflow-net
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # 2. Servidor Web (Interfaz de Usuario)
+  webserver:
+    image: apache/airflow:2.7.2
+    # El comando webserver debe esperar a que la DB esté lista
+    command: webserver
+    restart: always
+    ports:
+      - "8080:8080" # Puerto para acceder a Airflow UI
+    environment:
+      # Usar variables de Airflow
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+      AIRFLOW__WEBSERVER__SECRET_KEY: 'super_secret' # Cambiar en producción
+    networks:
+      - airflow-net
+    depends_on:
+      postgres:
+        condition: service_healthy # Espera a que la DB esté lista
+    volumes:
+      # Montaje de tu código local a la ruta esperada de Airflow
+      - ./dags:/opt/airflow/dags
+      - ./src:/opt/airflow/src
+      - ./tests:/opt/airflow/tests
+      - ./sql:/opt/airflow/sql
+      - ./requirements.txt:/requirements.txt
+
+# 3. Scheduler (Orquestador de Tareas)
+  scheduler:
+    image: apache/airflow:2.7.2
+    command: scheduler
+    restart: always
+    environment:
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+    networks:
+      - airflow-net
+    depends_on:
+      webserver:
+        condition: service_started
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./src:/opt/airflow/src
+      - ./tests:/opt/airflow/tests
+      - ./sql:/opt/airflow/sql
+      - ./requirements.txt:/requirements.txt
+    entrypoint: /bin/bash -c "pip install -r /requirements.txt && /entrypoint.sh"
+
+### 3. Commit de la Infraestructura
+
+Sube los archivos creados hoy (`requirements.txt` y `docker-compose.yml`) a GitHub:
+
+```bash
+git add requirements.txt docker-compose.yml
+git commit -m "feat: Setup Docker Compose infrastructure for Airflow, Postgres, and Python dependencies"
+git push origin main

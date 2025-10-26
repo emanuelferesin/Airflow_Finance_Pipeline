@@ -1,0 +1,17 @@
+# ARCHIVO: .gitignore
+
+# Entornos Virtuales
+/venv
+.vscode/
+
+# Archivos de caché
+__pycache__/
+*.pyc
+
+# Datos y logs generados
+/logs
+/data
+*.log
+
+# Archivo de credenciales REALES (CRUCIAL)
+.env
