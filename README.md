@@ -1,5 +1,7 @@
 # 📈 Airflow-Finance-SCD2-Pipeline
 
+![CI Pipeline](https://github.com/emanuelferesin/Airflow_Finance_Pipeline/actions/workflows/ci.yml/badge.svg)
+
 Este proyecto implementa un **Pipeline de Ingeniería de Datos ELT** de extremo a extremo, orquestado con **Apache Airflow 2.x** y desplegado usando **Docker Compose**. El objetivo principal es **consolidar datos financieros temporales** de múltiples APIs para construir un Data Warehouse en **Redshift**, utilizando un **Esquema Estrella** avanzado.
 
 ### 🔑 Características Destacadas
