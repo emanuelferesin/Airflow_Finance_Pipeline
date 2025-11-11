@@ -1,0 +1,21 @@
+
+# ====================================
+# DATABASE CONFIGURATION
+# ====================================
+
+# PostgreSQL Local (Development)
+POSTGRES_HOST=postgres
+POSTGRES_PORT=5432
+POSTGRES_DB=airflow
+POSTGRES_USER=airflow
+POSTGRES_PASSWORD=airflow
+
+# Redshift (Production)
+REDSHIFT_HOST=your_redshift_host
+REDSHIFT_PORT=5439
+REDSHIFT_DB=your_database
+REDSHIFT_USER=your_user
+REDSHIFT_PASSWORD=your_password
+
+# Database Selection (true = Redshift, false = PostgreSQL Local)
+USE_REDSHIFT=false

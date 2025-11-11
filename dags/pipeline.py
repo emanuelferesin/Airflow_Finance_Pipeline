@@ -245,8 +245,8 @@ la información calculando precios en moneda local.
 5. **Fin**: Marca fin del pipeline
 
 ### Próximas Mejoras
-- Día 8: Agregar carga a staging (PostgreSQL)
-- Día 9: Agregar modelado dimensional (SCD Type 2)
+Agregar carga a staging (PostgreSQL)
+Agregar modelado dimensional (SCD Type 2)
 
 ### Schedule
 - **Frecuencia**: Diaria (@daily)
