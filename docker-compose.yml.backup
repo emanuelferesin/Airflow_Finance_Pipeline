@@ -30,12 +30,9 @@ networks:
 
 volumes:
   postgres-db-volume:
-  postgres-dwh-volume:
 
 services:
-  # ==========================================
-  # PostgreSQL - Metadatos de Airflow
-  # ==========================================
+  # Base de Datos PostgreSQL
   postgres:
     image: postgres:13
     container_name: airflow_postgres
@@ -47,6 +44,7 @@ services:
       POSTGRES_DB: airflow
     volumes:
       - postgres-db-volume:/var/lib/postgresql/data
+      - ./sql:/sql
     networks:
       - airflow-net
     healthcheck:
@@ -56,33 +54,7 @@ services:
       retries: 5
     restart: always
 
-  # ==========================================
-  # PostgreSQL - Data Warehouse (Development)
-  # ==========================================
-  postgres_dwh:
-    image: postgres:13
-    container_name: postgres_dwh
-    ports:
-      - "5433:5432"
-    environment:
-      POSTGRES_USER: dwh_user
-      POSTGRES_PASSWORD: dwh_password
-      POSTGRES_DB: dwh
-    volumes:
-      - postgres-dwh-volume:/var/lib/postgresql/data
-      - ./sql:/sql
-    networks:
-      - airflow-net
-    healthcheck:
-      test: ["CMD", "pg_isready", "-U", "dwh_user"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    restart: always
-
-  # ==========================================
-  # Airflow - Inicialización
-  # ==========================================
+  # Inicialización de Airflow
   airflow-init:
     <<: *airflow-common
     container_name: airflow_init
@@ -90,8 +62,13 @@ services:
     command:
       - -c
       - |
+        # Solo crear directorios (SIN chown)
         mkdir -p /opt/airflow/logs /opt/airflow/dags /opt/airflow/plugins
+        
+        # Inicializar base de datos
         airflow db init
+        
+        # Crear usuario admin
         airflow users create \
           --username admin \
           --firstname Admin \
@@ -99,6 +76,7 @@ services:
           --role Admin \
           --email admin@example.com \
           --password admin
+        
         echo "======================================"
         echo "✅ Airflow inicializado!"
         echo "Usuario: admin"
@@ -112,9 +90,7 @@ services:
     networks:
       - airflow-net
 
-  # ==========================================
-  # Airflow - Webserver (UI)
-  # ==========================================
+  # Webserver (UI)
   webserver:
     <<: *airflow-common
     container_name: airflow_webserver
@@ -134,9 +110,7 @@ services:
       airflow-init:
         condition: service_completed_successfully
 
-  # ==========================================
-  # Airflow - Scheduler
-  # ==========================================
+  # Scheduler
   scheduler:
     <<: *airflow-common
     container_name: airflow_scheduler
