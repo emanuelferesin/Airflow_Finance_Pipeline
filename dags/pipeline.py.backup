@@ -1,13 +1,12 @@
 """
-DAG Completo del Pipeline ETL Financiero
-Extrae datos de 3 APIs, transforma y carga a Data Warehouse con SCD Type 2
+DAG Principal del Pipeline ETL Financiero
+Extrae datos de 3 APIs, transforma y prepara para carga
 """
 
 from datetime import datetime, timedelta
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from airflow.operators.empty import EmptyOperator
-from airflow.providers.postgres.operators.postgres import PostgresOperator
 import logging
 
 # Importar nuestros módulos
@@ -81,7 +80,6 @@ def tarea_transformar_datos(**context):
         logger.info(f"✅ Transformación completada:")
         logger.info(f"  • Total registros: {len(df_final)}")
         logger.info(f"  • Columnas: {len(df_final.columns)}")
-        logger.info(f"COLUMNAS_DF = {df_final.columns.tolist()}")
         
         # Guardar resumen en XCom
         context['ti'].xcom_push(key='datos_transformados', value={
@@ -90,72 +88,18 @@ def tarea_transformar_datos(**context):
             'resumen': resumen
         })
         
-        logger.info("📊 Datos listos para carga")
+        logger.info("📊 Datos listos para carga (próximamente)")
         
-        # Retornar DataFrame para la siguiente tarea
-        return df_final
+        return True
         
     except Exception as e:
         logger.error(f"❌ Error en transformación: {str(e)}")
         raise
 
 
-def tarea_cargar_staging(**context):
-    """
-    Tarea 3: Carga datos consolidados a staging
-    """
-    logger.info("💾 Iniciando carga a staging...")
-    
-    try:
-        # Obtener datos transformados de la tarea anterior
-        df_consolidado = context['ti'].xcom_pull(task_ids='transformar_datos')
-        
-        if df_consolidado is None or len(df_consolidado) == 0:
-            raise ValueError("No hay datos transformados para cargar")
-        
-        # Importar función de conexión a base de datos
-        from src.database import get_database_engine
-        from sqlalchemy import text
-        
-        # Obtener engine (usa USE_REDSHIFT de .env automáticamente)
-        engine = get_database_engine()
-        
-        # Limpiar staging antes de cargar
-        logger.info("🧹 Limpiando tabla staging_consolidado...")
-        with engine.begin() as conn:
-            conn.execute(text("TRUNCATE TABLE staging_consolidado"))
-        
-        """
-            with engine.connect() as conn:
-            conn.execute(text("TRUNCATE TABLE staging_consolidado"))
-            conn.commit()
-        """
-        # Cargar datos a staging
-        logger.info(f"📤 Cargando {len(df_consolidado)} registros a staging_consolidado...")
-        df_consolidado.to_sql(
-            'staging_consolidado',
-            engine,
-            if_exists='append',
-            index=False,
-            method='multi',
-            chunksize=1000
-        )
-        
-        logger.info(f"✅ Carga completada: {len(df_consolidado)} registros en staging")
-        
-        # Guardar conteo en XCom
-        context['ti'].xcom_push(key='registros_cargados', value=len(df_consolidado))
-        
-        return len(df_consolidado)
-        
-    except Exception as e:
-        logger.error(f"❌ Error en carga a staging: {str(e)}")
-        raise
-
-
 def tarea_resumen_final(**context):
     """
-    Tarea final: Muestra resumen completo de la ejecución
+    Tarea final: Muestra resumen de la ejecución
     """
     logger.info("📋 Generando resumen final...")
     
@@ -171,14 +115,9 @@ def tarea_resumen_final(**context):
             key='datos_transformados'
         )
         
-        registros_cargados = context['ti'].xcom_pull(
-            task_ids='cargar_staging',
-            key='registros_cargados'
-        )
-        
         # Mostrar resumen
         logger.info("=" * 60)
-        logger.info("✅ PIPELINE ETL COMPLETADO EXITOSAMENTE")
+        logger.info("✅ PIPELINE EJECUTADO EXITOSAMENTE")
         logger.info("=" * 60)
         
         if datos_extraidos:
@@ -189,18 +128,8 @@ def tarea_resumen_final(**context):
         
         if datos_transformados:
             logger.info("\n🔄 TRANSFORMACIÓN:")
-            logger.info(f"  • Registros consolidados: {datos_transformados['registros_totales']}")
+            logger.info(f"  • Registros finales: {datos_transformados['registros_totales']}")
             logger.info(f"  • Columnas: {datos_transformados['columnas_totales']}")
-        
-        if registros_cargados:
-            logger.info("\n💾 CARGA:")
-            logger.info(f"  • Registros en staging: {registros_cargados}")
-            logger.info(f"  • Tabla: staging_consolidado")
-        
-        logger.info("\n🎯 TRANSFORMACIÓN DIMENSIONAL:")
-        logger.info("  ✅ SCD Type 2 ejecutado")
-        logger.info("  ✅ Datos en dim_producto")
-        logger.info("  ✅ Datos en fact_ventas")
         
         logger.info("=" * 60)
         
@@ -219,7 +148,7 @@ def tarea_resumen_final(**context):
 default_args = {
     'owner': 'data_team',
     'depends_on_past': False,
-    'start_date': datetime(2025, 11, 1),
+    'start_date': datetime(2025, 10, 26),
     'email_on_failure': False,
     'email_on_retry': False,
     'retries': 2,
@@ -230,11 +159,11 @@ default_args = {
 with DAG(
     dag_id='pipeline_financiero_etl',
     default_args=default_args,
-    description='Pipeline ETL Completo - Extracción, Transformación y Carga con SCD Type 2',
-    schedule_interval='@daily',
-    start_date=datetime(2025, 11, 1),
-    catchup=False,
-    tags=['etl', 'finance', 'production'],
+    description='Pipeline ETL de datos financieros - Extracción y Transformación',
+    schedule_interval='@daily',  # Ejecuta una vez al día
+    start_date=datetime(2025, 10, 26),
+    catchup=False,  # No ejecutar fechas pasadas
+    tags=['etl', 'finance', 'daily'],
     doc_md=__doc__,
 ) as dag:
     
@@ -278,40 +207,11 @@ with DAG(
         """
     )
     
-    # Tarea 3: Carga a Staging
-    cargar_staging = PythonOperator(
-        task_id='cargar_staging',
-        python_callable=tarea_cargar_staging,
-        doc_md="""
-        # Carga a Staging
-        
-        - Limpia tabla staging_consolidado (TRUNCATE)
-        - Carga datos consolidados
-        - Usa configuración de USE_REDSHIFT para elegir BD
-        - Soporta PostgreSQL DWH (dev) y Redshift (prod)
-        """
-    )
-    
-    # Tarea 4: Transformación SCD2
-    transform_scd2 = PostgresOperator(
-        task_id='transform_scd2',
-        postgres_conn_id='postgres_dwh',
-        sql='sql/04_transform_scd2.sql',
-        doc_md="""
-        # Transformación SCD Type 2
-        
-        - Cierra registros que cambiaron (es_actual=0)
-        - Inserta nuevos registros en dim_producto
-        - Carga datos a fact_ventas
-        - Mantiene historial completo de cambios
-        """
-    )
-    
-    # Tarea 5: Resumen
+    # Tarea 3: Resumen
     resumen_final = PythonOperator(
         task_id='resumen_final',
         python_callable=tarea_resumen_final,
-        doc_md="Genera resumen completo de la ejecución del pipeline"
+        doc_md="Genera resumen final de la ejecución"
     )
     
     # Tarea final (dummy)
@@ -324,47 +224,29 @@ with DAG(
     # DEPENDENCIAS (FLUJO DE EJECUCIÓN)
     # ============================================
     
-    inicio >> extraer_datos >> transformar_datos >> cargar_staging >> transform_scd2 >> resumen_final >> fin
-
+    inicio >> extraer_datos >> transformar_datos >> resumen_final >> fin
 
 # ============================================
 # DOCUMENTACIÓN DEL DAG
 # ============================================
 
 """
-## Pipeline ETL Financiero Completo
+## Pipeline ETL Financiero
 
 ### Descripción
-Pipeline diario que extrae datos de APIs financieras, transforma, consolida
-y carga a Data Warehouse con modelado dimensional SCD Type 2.
+Pipeline diario que extrae datos de APIs financieras, transforma y consolida
+la información calculando precios en moneda local.
 
 ### Flujo de Ejecución
 1. **Inicio**: Marca inicio del pipeline
 2. **Extracción**: Extrae de 3 APIs (productos, tipos de cambio, adicionales)
 3. **Transformación**: Consolida y calcula precios locales
-4. **Carga a Staging**: Inserta datos en staging_consolidado
-5. **Transformación SCD2**: Ejecuta SQL para modelado dimensional
-6. **Resumen**: Genera log con estadísticas completas
-7. **Fin**: Marca fin del pipeline
+4. **Resumen**: Genera log con estadísticas
+5. **Fin**: Marca fin del pipeline
 
-### Arquitectura de Datos
-```
-APIs → Extracción → Transformación → Staging → SCD2 → Dimensional
-                                        ↓
-                                   PostgreSQL DWH
-                                        o
-                                    Redshift
-```
-
-### Bases de Datos Soportadas
-- **Development**: PostgreSQL DWH (postgres_dwh:5433)
-- **Production**: Redshift (configurar USE_REDSHIFT=true en .env)
-- **Switch**: Cambiar variable USE_REDSHIFT sin modificar código
-
-### Tablas Creadas
-- **Staging**: staging_consolidado (datos temporales)
-- **Dimensión**: dim_producto (SCD Type 2 con historial)
-- **Hechos**: fact_ventas (métricas de precios)
+### Próximas Mejoras
+Agregar carga a staging (PostgreSQL)
+Agregar modelado dimensional (SCD Type 2)
 
 ### Schedule
 - **Frecuencia**: Diaria (@daily)
@@ -375,20 +257,4 @@ APIs → Extracción → Transformación → Staging → SCD2 → Dimensional
 - **Retries**: 2
 - **Retry Delay**: 5 minutos
 - **Owner**: data_team
-- **Conexión BD**: postgres_dwh (configurar en Airflow UI)
-
-### Monitoreo
-Verificar en DBeaver:
-```sql
--- Staging
-SELECT COUNT(*) FROM staging_consolidado;
-
--- Dimensión con historial
-SELECT producto_id, COUNT(*) as versiones 
-FROM dim_producto 
-GROUP BY producto_id;
-
--- Hechos
-SELECT COUNT(*) FROM fact_ventas;
-```
 """

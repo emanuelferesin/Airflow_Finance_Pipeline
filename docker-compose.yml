@@ -74,7 +74,7 @@ services:
     networks:
       - airflow-net
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "dwh_user"]
+      test: ["CMD", "pg_isready", "-U", "dwh_user", "-d", "dwh"]
       interval: 10s
       timeout: 5s
       retries: 5
