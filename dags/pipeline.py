@@ -29,7 +29,7 @@ def tarea_extraer_datos(**context):
     """
     Tarea 1: Extrae datos de las 3 APIs
     """
-    logger.info("🚀 Iniciando extracción de datos...")
+    logger.info("Iniciando extracción de datos...")
     
     try:
         # Extraer datos (1 día para ejecución diaria)
@@ -120,21 +120,30 @@ def tarea_cargar_staging(**context):
         # Obtener engine (usa USE_REDSHIFT de .env automáticamente)
         engine = get_database_engine()
         
-        # Limpiar staging antes de cargar
-        logger.info("🧹 Limpiando tabla staging_consolidado...")
-        with engine.begin() as conn:
-            conn.execute(text("TRUNCATE TABLE staging_consolidado"))
+        # Obtener configuración de ambiente
+        import os
+        use_redshift = os.getenv('USE_REDSHIFT', 'false').lower() == 'true'
         
-        """
-            with engine.connect() as conn:
-            conn.execute(text("TRUNCATE TABLE staging_consolidado"))
-            conn.commit()
-        """
+        # Definir schema según ambiente
+        if use_redshift:
+            schema = "2025_emanuel_alcides_feresin_schema"
+        else:
+            schema = "public"  # PostgreSQL usa public por defecto
+        
+        tabla = "staging_consolidado"
+        tabla_completa = f'"{schema}".{tabla}' if use_redshift else tabla
+        
+        # Limpiar staging antes de cargar
+        logger.info(f"🧹 Limpiando tabla {tabla_completa}...")
+        with engine.begin() as conn:
+            conn.execute(text(f"TRUNCATE TABLE {tabla_completa}"))
+        
         # Cargar datos a staging
-        logger.info(f"📤 Cargando {len(df_consolidado)} registros a staging_consolidado...")
+        logger.info(f"📤 Cargando {len(df_consolidado)} registros a {tabla_completa}...")
         df_consolidado.to_sql(
-            'staging_consolidado',
+            tabla,
             engine,
+            schema=schema,
             if_exists='append',
             index=False,
             method='multi',
@@ -357,7 +366,7 @@ APIs → Extracción → Transformación → Staging → SCD2 → Dimensional
 ```
 
 ### Bases de Datos Soportadas
-- **Development**: PostgreSQL DWH (postgres_dwh:5433)
+- **Development**: PostgreSQL DWH (postgres_dwh:5433) - (configurar USE_REDSHIFT=false en .env)
 - **Production**: Redshift (configurar USE_REDSHIFT=true en .env)
 - **Switch**: Cambiar variable USE_REDSHIFT sin modificar código
 
@@ -378,17 +387,7 @@ APIs → Extracción → Transformación → Staging → SCD2 → Dimensional
 - **Conexión BD**: postgres_dwh (configurar en Airflow UI)
 
 ### Monitoreo
-Verificar en DBeaver:
-```sql
--- Staging
-SELECT COUNT(*) FROM staging_consolidado;
+Verificar tablas en DBeaver:
 
--- Dimensión con historial
-SELECT producto_id, COUNT(*) as versiones 
-FROM dim_producto 
-GROUP BY producto_id;
-
--- Hechos
-SELECT COUNT(*) FROM fact_ventas;
 ```
 """

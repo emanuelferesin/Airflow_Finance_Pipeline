@@ -23,11 +23,12 @@ def get_database_engine() -> Engine:
     NUNCA USA: postgres:airflow (reservado para Airflow)
     """
     use_redshift = os.getenv('USE_REDSHIFT', 'false').lower() == 'true'
-    
+    logger.info(f" use_redshift: {use_redshift}")
+
     if use_redshift:
         # Redshift (Producción)
         host = os.getenv('REDSHIFT_HOST')
-        port = os.getenv('REDSHIFT_PORT', '5439')
+        port = os.getenv('REDSHIFT_PORT')
         database = os.getenv('REDSHIFT_DB')
         user = os.getenv('REDSHIFT_USER')
         password = os.getenv('REDSHIFT_PASSWORD')
@@ -43,11 +44,11 @@ def get_database_engine() -> Engine:
         
     else:
         # PostgreSQL DWH (Desarrollo) - SEPARADO de Airflow
-        host = os.getenv('POSTGRES_DWH_HOST', 'postgres_dwh')
-        port = os.getenv('POSTGRES_DWH_PORT', '5432')
-        database = os.getenv('POSTGRES_DWH_DB', 'dwh')
-        user = os.getenv('POSTGRES_DWH_USER', 'dwh_user')
-        password = os.getenv('POSTGRES_DWH_PASSWORD', 'dwh_password')
+        host = os.getenv('POSTGRES_DWH_HOST')
+        port = os.getenv('POSTGRES_DWH_PORT')
+        database = os.getenv('POSTGRES_DWH_DB')
+        user = os.getenv('POSTGRES_DWH_USER')
+        password = os.getenv('POSTGRES_DWH_PASSWORD')
         
         conn_string = f"postgresql://{user}:{password}@{host}:{port}/{database}"
         
@@ -97,9 +98,9 @@ def get_db_info() -> dict:
         return {
             'type': 'PostgreSQL DWH',
             'environment': 'Development',
-            'host': os.getenv('POSTGRES_DWH_HOST', 'postgres_dwh'),
-            'port': os.getenv('POSTGRES_DWH_PORT', '5432'),
-            'database': os.getenv('POSTGRES_DWH_DB', 'dwh')
+            'host': os.getenv('POSTGRES_DWH_HOST'),
+            'port': os.getenv('POSTGRES_DWH_PORT'),
+            'database': os.getenv('POSTGRES_DWH_DB')
         }
 
 

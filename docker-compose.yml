@@ -6,6 +6,7 @@ x-airflow-common:
     - .env
   environment:
     &airflow-common-env
+    USE_REDSHIFT: ${USE_REDSHIFT}
     AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
     AIRFLOW__CORE__EXECUTOR: LocalExecutor
     AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
@@ -15,6 +16,7 @@ x-airflow-common:
     PYTHONPATH: /opt/airflow
   volumes:
     - ./dags:/opt/airflow/dags
+    - ./dags/sql:/opt/airflow/dags/sql
     - ./logs:/opt/airflow/logs
     - ./plugins:/opt/airflow/plugins
     - ./src:/opt/airflow/src

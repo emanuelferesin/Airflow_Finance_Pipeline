@@ -6,15 +6,6 @@ Este proyecto implementa un **Pipeline de Ingeniería de Datos ELT** de extremo 
 
 ---
 
-## 📊 Estado del Proyecto
-
-✅ **Días 1-2**: Setup y Docker Infrastructure  
-✅ **Días 3-4**: Extracción y Transformación de Datos  
-✅ **Día 5**: Testing Unitario (7 tests passing)  
-✅ **Día 6**: CI/CD con GitHub Actions  
-🔄 **Próximo**: DAG de Airflow y Modelado Dimensional  
-
----
 
 ## 🔑 Características Destacadas
 
@@ -54,7 +45,7 @@ git clone https://github.com/emanuelferesin/Airflow_Finance_Pipeline.git
 cd Airflow_Finance_Pipeline
 
 # Configurar variables de entorno
-cp env_example .env
+cp .env
 
 # Dar permisos a carpeta logs
 chmod -R 777 logs/
@@ -85,24 +76,27 @@ exit
 Airflow_Finance_Pipeline/
 ├── .github/
 │   └── workflows/
-│       └── ci.yml              # CI/CD pipeline
+│       └── ci.yml                             # CI/CD pipeline
 ├── dags/
-│   └── __init__.py             # DAGs de Airflow (próximamente)
+│   └── __init__.py                            # DAGs de Airflow (próximamente)
 ├── src/
-│   ├── extractor.py            # Extracción de APIs con histórico
-│   ├── transformer.py          # Transformación y consolidación
-│   └── utils.py                # Utilidades y manejo de errores
+│   ├── extractor.py                           # Extracción de APIs con histórico
+│   ├── transformer.py                         # Transformación y consolidación
+│   └── utils.py                               # Utilidades y manejo de errores
 ├── tests/
-│   ├── test_extractor.py       # Tests de extracción (4 tests)
-│   └── test_transformer.py     # Tests de transformación (3 tests)
+│   ├── test_extractor.py                      # Tests de extracción (4 tests)
+│   └── test_transformer.py                    # Tests de transformación (3 tests)
 ├── sql/
-│   └── (próximamente)          # Scripts SQL para modelado
-├── logs/                       # Logs de Airflow
-├── plugins/                    # Plugins personalizados
-├── docker-compose.yml          # Orquestación de servicios
-├── Dockerfile                  # Imagen personalizada de Airflow
-├── requirements.txt            # Dependencias Python
-├── pytest.ini                  # Configuración de pytest
+│   └── 01_create_staging_tables.sql           # Scripts SQL para crear tabla staging
+│   └── 02_create_dim_producto.sql             # Scripts SQL para crear tabla dim_producto
+│   └── 03_create_fact_ventas.sql              # Scripts SQL para crear tabla fact_ventas
+│   └── 04_transform_scd2.sql                  # Scripts SQL para crear tabla scd2
+├── logs/                                      # Logs de Airflow
+├── plugins/                                   # Plugins personalizados
+├── docker-compose.yml                         # Orquestación de servicios
+├── Dockerfile                                 # Imagen personalizada de Airflow
+├── requirements.txt                           # Dependencias Python
+├── pytest.ini                                 # Configuración de pytest
 └── README.md
 ```
 
