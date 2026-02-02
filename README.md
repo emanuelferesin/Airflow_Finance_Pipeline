@@ -177,7 +177,7 @@ df_final, resumen = transformar_datos_completo(
 
 ---
 
-## 📊 Modelo de Datos (Próximamente)
+## 📊 Modelo de Datos
 
 ### Esquema Estrella
 
